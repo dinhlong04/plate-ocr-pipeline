@@ -5,7 +5,7 @@ Vietnamese License Plate OCR using ONNX Runtime (CPU).
 ## 📁 Project Structure
 
 ```
-plate-ocr/
+plate-ocr-pipeline/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
