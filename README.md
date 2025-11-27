@@ -1,6 +1,6 @@
 # License Plate OCR Pipeline
 
-Vietnamese License Plate OCR using ONNX Runtime (CPU).
+Vietnamese License Plate OCR using ONNX Runtime.
 
 ## 📁 Project Structure
 
@@ -15,20 +15,19 @@ plate-ocr-pipeline/
 ├── utils/
 │   ├── __init__.py
 │   ├── text_utils.py
-│   └── image_utils.py
+│   ├── image_utils.py
+│   └── benchmark_utils.py
 ├── model/                   
 │   ├── model.onnx
 │   └── plate_config.yaml
 ├── data/                     # Input images
 │   └── *.jpg
-├── label/                     # Truth label
-│   └── *.csv
 └── outputs/                  # Results
 ```
 
 ## 🚀 Quick Start
 
-### 1. Build Docker image
+### 1. Build Docker Image
 
 ```bash
 docker build -t plate-ocr:cpu .
@@ -36,95 +35,100 @@ docker build -t plate-ocr:cpu .
 
 ### 2. Run
 
-**Docker Compose**
-
 ```bash
 docker-compose up --build
 ```
 
-**If you want to try another image**
+### 3. Interactive Mode
 
 ```bash
 docker-compose run ocr bash
 ```
+
 Then inside container:
 
-## 📖 Usage Example
+```python
+python
+>>> from inference_pipeline import LicensePlateOCRPipeline
+>>> pipeline = LicensePlateOCRPipeline.from_config("pipeline_config.yaml")
+>>> result = pipeline.run_inference("./data/plate.jpg")
+>>> print(result)
+```
+
+## 📖 Usage
+
 ### Single Inference
+
 ```python
 from inference_pipeline import LicensePlateOCRPipeline
 
 pipeline = LicensePlateOCRPipeline.from_config("pipeline_config.yaml")
-pipeline.load_model()
-result = pipeline.run_inference("./data/cam2_20250926_134219_obj06_cls1_lp00_c084.jpg")
-print(result)
+result = pipeline.run_inference("./data/plate.jpg")
+print(result)  # "29B112345"
 ```
+
 ### Batch Inference
+
 ```python
 results = pipeline.run_inference([
-    "./data/cam16_20251009_093709_obj01_cls1_lp00_c085.jpg",
-    "./data/cam32_20251008_081648_obj04_cls2_lp00_c080.jpg",
-    "./data/cam2_20250926_134219_obj06_cls1_lp00_c084.jpg"
+    "./data/plate1.jpg",
+    "./data/plate2.jpg",
+    "./data/plate3.jpg"
 ])
-print(f"Results: {results}")
+print(results)  # ["29B112345", "51G12345", "30A67890"]
 ```
 
-### Disable Preprocessing Steps
+### Disable Preprocessing
 
 ```python
-# Disable upscale and sharpen
 pipeline.enable_preprocessing_step("upscale", False)
-pipeline.enable_preprocessing_step("correct_skew", False)
 pipeline.enable_preprocessing_step("denoise", False)
-pipeline.enable_preprocessing_step("enhance_contrast", False)
 pipeline.enable_preprocessing_step("sharpen", False)
 
-result = pipeline.run_inference("data/cam16_20251009_093709_obj01_cls1_lp00_c085.jpg")
-print(result)
+result = pipeline.run_inference("./data/plate.jpg")
 ```
 
-### Get Raw Prediction (No Postprocess)
+### Get Raw Prediction
 
 ```python
-raw = pipeline.get_raw_prediction("data/cam32_20251008_105747_obj03_cls2_lp00_c084.jpg")
-print(f"Raw: {raw}")  # May contain underscores: "29B1_12345__"
+raw = pipeline.get_raw_prediction("./data/plate.jpg")
+print(raw)  # "29B1_12345__" (before normalization)
 ```
 
 ## 🔧 Configuration
 
-Edit `pipeline_config.yaml` to customize:
-
-### Preprocessing Steps
+Edit `pipeline_config.yaml`:
 
 ```yaml
+model:
+  onnx_model_path: "./model/model.onnx"
+  plate_config_path: "./model/plate_config.yaml"
+  device: "cpu"
+
 preprocessing:
   upscale:
     enabled: true
     scale: 3
-  
   correct_skew:
     enabled: true
-  
   denoise:
     enabled: true
     method: "median"
-  
   enhance_contrast:
     enabled: true
     method: "clahe"
-  
   sharpen:
     enabled: true
-```
 
-### Postprocessing
-
-```yaml
 postprocessing:
   normalize:
     remove_underscore: true
     remove_hyphen: true
+    remove_space: true
     to_uppercase: true
+
+inference:
+  batch_size: 8
 ```
 
 ## 🛠 Utils
@@ -134,21 +138,18 @@ postprocessing:
 ```python
 from utils.text_utils import is_valid_plate, get_plate_type, extract_plate_parts
 
-# Validate
 is_valid_plate("29B112345")  # True
 is_valid_plate("ABC123")     # False
 
-# Get type
 get_plate_type("29B112345")  # "motorcycle"
 get_plate_type("51G12345")   # "car"
 get_plate_type("TM12345")    # "military"
 
-# Extract parts
-extract_plate_parts("29B112345")
-# {"province": "29", "series": "B1", "number": "12345", "type": "motorcycle"}
+extract_plate_parts("51G12345")
+# {"province": "51", "series": "G", "number": "12345", "type": "car"}
 ```
 
-## Benchmark Speed
+### Benchmark Speed
 
 ```python
 from inference_pipeline import LicensePlateOCRPipeline
@@ -157,6 +158,41 @@ import glob
 
 pipeline = LicensePlateOCRPipeline.from_config("pipeline_config.yaml")
 images = glob.glob("./data/*.jpg")
+
 benchmarker = Benchmarker(pipeline)
 report = benchmarker.run(images, batch_sizes=[1, 2, 4, 8, 16, 32])
 ```
+
+Output:
+
+```
+======================================================================
+BENCHMARK: Batch Size Comparison
+======================================================================
+Batch      Latency (ms)         FPS             RAM Peak
+Size       avg ± std            img/s           (MB)
+----------------------------------------------------------------------
+1          36.18 ± 7.08         27.64           116.47
+2          140.23 ± 49.44       14.26           129.72
+4          224.84 ± 53.01       17.79           155.59
+8          382.52 ± 28.46       20.91           215.34
+======================================================================
+📊 Best FPS: batch_size=1 (27.64 img/s)
+📊 Best Latency: batch_size=1 (36.18 ms)
+```
+
+### Export Benchmark Report
+
+```python
+benchmarker.export(report, "benchmark.csv")
+benchmarker.export(report, "benchmark.json", format="json")
+```
+
+## 📋 Requirements
+
+- Python 3.10+
+- OpenCV
+- ONNX Runtime
+- fast-plate-ocr
+- PyYAML
+- psutil (for benchmark)
