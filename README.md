@@ -5,7 +5,7 @@ Vietnamese License Plate OCR using ONNX Runtime (CPU).
 ## 📁 Project Structure
 
 ```
-plate-ocr/
+plate-ocr-pipeline/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -50,11 +50,10 @@ docker-compose run ocr bash
 Then inside container:
 
 ```python
-python
 from inference_pipeline import LicensePlateOCRPipeline
 
 pipeline = LicensePlateOCRPipeline.from_config("pipeline_config.yaml")
-result = pipeline.run_inference("./data/cam1_20250926_132743_car_0_plate_0_0.jpg")
+result = pipeline.run_inference("./data/cam1_20250926_142949_car_1_plate_0_0.jpg")
 print(result)
 ```
 
@@ -77,9 +76,9 @@ print(f"Result: {result}")
 ```python
 # Multiple images
 results = pipeline.run_inference([
-    "data/plate1.jpg",
-    "data/plate2.jpg",
-    "data/plate3.jpg"
+    "./data/cam16_20251009_093709_obj01_cls1_lp00_c085.jpg",
+    "./data/cam32_20251008_081648_obj04_cls2_lp00_c080.jpg",
+    "./data/cam2_20250926_134219_obj06_cls1_lp00_c084.jpg"
 ])
 print(f"Results: {results}")
 ```
@@ -92,6 +91,7 @@ pipeline.enable_preprocessing_step("upscale", False)
 pipeline.enable_preprocessing_step("sharpen", False)
 
 result = pipeline.run_inference("data/cam16_20251009_093709_obj01_cls1_lp00_c085.jpg")
+print(result)
 ```
 
 ### Get Raw Prediction (No Postprocess)
@@ -162,27 +162,24 @@ extract_plate_parts("29B112345")
 **BENCHMARK SPEED**
 
 ```python
-# Benchmark single
-result = pipeline.benchmark_single("./data/cam16_20251009_093709_obj01_cls1_lp00_c085.jpg", n_runs=100)
-print(f"Latency: {result.latency_avg:.2f}ms, FPS: {result.fps:.2f}")
 
 # Benchmark batch sizes (1 → 32)
 images = ["./data/cam1_20250926_132743_car_0_plate_0_0.jpg", "./data/cam1_20250926_133824_car_2_plate_0_0.jpg", 
           "./data/cam1_20250926_142602_car_3_plate_0_0.jpg", "./data/cam1_20250926_142804_car_0_plate_0_0.jpg",
           "./data/cam1_20250926_142949_car_1_plate_0_0.jpg", "./data/cam1_20250926_143554_car_0_plate_0_0.jpg",
           "./data/cam1_20251008_105152_car_0_plate_0_0.jpg", "./data/cam2_20250926_133219_obj03_cls1_lp00_c084.jpg",
-          "./data/cam2_20250926_134219_obj06_cls1_lp00_c084.jpg", "./data/cam2_20250926_134508_obj00_cls1_lp00_c084.jpg",
-          "./data/cam2_20250926_141455_obj02_cls2_lp00_c076.jpg", "./data/cam2_20250926_142108_obj00_cls1_lp00_c084.jpg",
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg",
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg"
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg",
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", 
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", 
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", 
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg",
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg",
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg",
-          "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg", "./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg"]  # >= 32 ảnh
+          "./data/cam3_20251008_081400_obj04_cls2_lp00_c078.jpg", "./data/cam3_20251008_081437_obj06_cls1_lp00_c084.jpg",
+          "./data/cam3_20251008_081456_obj00_cls1_lp00_c079.jpg", "./data/cam3_20251008_104014_obj00_cls1_lp00_c084.jpg",
+          "./data/cam3_20251008_104014_obj02_cls1_lp00_c082.jpg", "./data/cam3_20251008_104014_obj03_cls1_lp00_c081.jpg",
+          "./data/cam3_20251008_104136_obj03_cls1_lp00_c081.jpg", "./data/cam3_20251008_104339_obj00_cls1_lp00_c084.jpg",
+          "./data/cam3_20251008_104517_obj00_cls1_lp00_c071.jpg", "./data/cam3_20251008_104555_obj03_cls1_lp00_c080.jpg",
+          "./data/cam3_20251008_104555_obj04_cls1_lp00_c081.jpg", "./data/cam3_20251008_105050_obj03_cls1_lp00_c080.jpg", 
+          "./data/cam3_20251008_105050_obj04_cls1_lp00_c082.jpg", "./data/cam3_20251008_105050_obj05_cls1_lp00_c082.jpg", 
+          "./data/cam3_20251008_105050_obj07_cls1_lp00_c078.jpg", "./data/cam3_20251008_105233_obj00_cls1_lp00_c082.jpg", 
+          "./data/cam3_20251008_105233_obj01_cls1_lp00_c085.jpg", "./data/cam3_20251008_105253_obj00_cls1_lp00_c084.jpg",
+          "./data/cam3_20251008_105431_obj03_cls1_lp00_c082.jpg", "./data/cam3_20251008_105905_obj03_cls1_lp00_c083.jpg",
+          "./data/cam3_20251008_110022_obj04_cls2_lp00_c083.jpg", "./data/cam3_20251008_110256_obj00_cls1_lp00_c080.jpg",
+          "./data/cam3_20251008_110256_obj03_cls2_lp00_c080.jpg", "./data/cam3_20251008_110315_obj06_cls1_lp00_c083.jpg"]  # >= 32 ảnh
 report = pipeline.benchmark_batch_sizes(
     images, 
     batch_sizes=[1, 2, 4, 8, 16, 32],
@@ -192,8 +189,4 @@ report = pipeline.benchmark_batch_sizes(
 # Export
 pipeline.export_benchmark_report(report, "benchmark.csv", format="csv")
 
-# Detail Profile
-stats = pipeline.profile_inference("./data/cam2_20250927_083814_obj02_cls1_lp00_c084.jpg")
-print(f"Preprocess: {stats['preprocess']['avg']:.2f}ms")
-print(f"Inference: {stats['inference']['avg']:.2f}ms")
 ```
