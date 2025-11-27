@@ -148,3 +148,15 @@ extract_plate_parts("29B112345")
 # {"province": "29", "series": "B1", "number": "12345", "type": "motorcycle"}
 ```
 
+## Benchmark Speed
+
+```python
+from inference_pipeline import LicensePlateOCRPipeline
+from utils.benchmark_utils import Benchmarker
+import glob
+
+pipeline = LicensePlateOCRPipeline.from_config("pipeline_config.yaml")
+images = glob.glob("./data/*.jpg")
+benchmarker = Benchmarker(pipeline)
+report = benchmarker.run(images, batch_sizes=[1, 2, 4, 8, 16, 32])
+```
