@@ -49,10 +49,10 @@ Then inside container:
 
 ```python
 python
->>> from inference_pipeline import LicensePlateOCRPipeline
->>> pipeline = LicensePlateOCRPipeline.from_config("pipeline_config.yaml")
->>> result = pipeline.run_inference("./data/plate.jpg")
->>> print(result)
+from inference_pipeline import LicensePlateOCRPipeline
+pipeline = LicensePlateOCRPipeline.from_config("pipeline_config.yaml")
+result = pipeline.run_inference("./data/plate.jpg")
+print(result)
 ```
 
 ## 📖 Usage
