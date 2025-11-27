@@ -1,0 +1,37 @@
+# =============================================================================
+# DOCKER COMPOSE FOR LICENSE PLATE OCR PIPELINE
+# =============================================================================
+version: '3.8'
+
+services:
+  ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: plate-ocr:cpu
+    container_name: plate-ocr-container
+    
+    # Mount volumes
+    volumes:
+      # Model files (required)
+      - ./model:/app/model:ro
+      
+      # Input images
+      - ./data:/app/data:ro
+      
+      # Output results
+      - ./outputs:/app/outputs
+      
+      # Config (optional - override default)
+      # - ./pipeline_config.yaml:/app/pipeline_config.yaml:ro
+    
+    # Environment variables
+    environment:
+      - PYTHONUNBUFFERED=1
+    
+    # Keep container running for interactive use
+    stdin_open: true
+    tty: true
+    
+    # Default command
+    command: python inference_pipeline.py

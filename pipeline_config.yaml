@@ -1,0 +1,69 @@
+# =============================================================================
+# PIPELINE CONFIGURATION FOR LICENSE PLATE OCR
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# MODEL CONFIGURATION
+# -----------------------------------------------------------------------------
+model:
+  onnx_model_path: "./model/vietnamese_plate_ocr.onnx"
+  plate_config_path: "./model/plate_config.yaml"
+  device: "cpu"  # "cuda" or "cpu"
+  providers:      # ONNX Runtime providers (auto-set based on device if empty)
+    - "CUDAExecutionProvider"
+    - "CPUExecutionProvider"
+
+# -----------------------------------------------------------------------------
+# PREPROCESSING CONFIGURATION
+# Mỗi bước có thể bật/tắt (enabled: true/false) và điều chỉnh params
+# -----------------------------------------------------------------------------
+preprocessing:
+  # Thứ tự thực hiện: upscale -> correct_skew -> denoise -> enhance_contrast -> sharpen
+  
+  upscale:
+    enabled: true
+    scale: 3                    # Hệ số phóng to (1 = giữ nguyên)
+    interpolation: "cubic"      # "cubic", "linear", "nearest"
+
+  correct_skew:
+    enabled: true
+    blur_kernel: [5, 5]         # Kernel size cho GaussianBlur
+    canny_threshold1: 50        # Canny edge detection threshold 1
+    canny_threshold2: 150       # Canny edge detection threshold 2
+    hough_threshold: 80         # HoughLinesP threshold
+    min_line_length: 20         # Minimum line length
+    max_line_gap: 10            # Maximum line gap
+    angle_range: [-45, 45]      # Chỉ xét các góc trong khoảng này
+
+  denoise:
+    enabled: true
+    method: "median"            # "median", "gaussian", "bilateral"
+    kernel_size: 3              # Kernel size (phải là số lẻ)
+
+  enhance_contrast:
+    enabled: true
+    method: "clahe"             # "clahe", "histogram_eq", "none"
+    clip_limit: 2.0             # CLAHE clip limit
+    tile_grid_size: [8, 8]      # CLAHE tile grid size
+
+  sharpen:
+    enabled: true
+    kernel_type: "standard"     # "standard", "unsharp_mask"
+    # Standard kernel: [[0, -1, 0], [-1, 5, -1], [0, -1, 0]]
+
+# -----------------------------------------------------------------------------
+# POSTPROCESSING CONFIGURATION
+# -----------------------------------------------------------------------------
+postprocessing:
+  normalize:
+    remove_underscore: true     # Xóa ký tự '_' (padding)
+    remove_hyphen: true         # Xóa ký tự '-'
+    remove_dot: true            # Xóa ký tự '.'
+    remove_space: true          # Xóa khoảng trắng
+    to_uppercase: true          # Chuyển thành chữ hoa
+
+# -----------------------------------------------------------------------------
+# INFERENCE CONFIGURATION
+# -----------------------------------------------------------------------------
+inference:
+  batch_size: 5             # Batch size cho batch inference
